@@ -3,6 +3,7 @@
 build/
 **/build/
 .kotlin/
+kotlin-js-store/
 
 # IDE
 .idea/
