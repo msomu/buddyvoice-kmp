@@ -1,0 +1,4 @@
+# Copy to .dev.vars (gitignored) for local `wrangler dev`.
+# NEVER commit real values.
+XAI_API_KEY=YOUR_GROK_KEY_HERE
+BUDDYVOICE_PROXY_KEY=CHOOSE_A_LONG_RANDOM_STRING_HERE
