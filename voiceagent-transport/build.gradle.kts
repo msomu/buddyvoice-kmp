@@ -3,6 +3,34 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidMultiplatformLibrary)
+    alias(libs.plugins.mavenPublish)
+}
+
+group = "io.github.msomu"
+version = "0.1.0-SNAPSHOT"
+
+mavenPublishing {
+    coordinates("io.github.msomu", "buddyvoice-transport", version.toString())
+    pom {
+        name.set("BuddyVoice Transport")
+        description.set("Shared Ktor WebSocket/HTTP transport for WebSocket-based voice agent providers")
+        url.set("https://github.com/msomu/buddyvoice-kmp")
+        licenses {
+            license {
+                name.set("MIT License")
+                url.set("https://opensource.org/license/mit")
+            }
+        }
+        developers {
+            developer {
+                id.set("msomu")
+                name.set("Somasundaram Mahesh")
+            }
+        }
+        scm {
+            url.set("https://github.com/msomu/buddyvoice-kmp")
+        }
+    }
 }
 
 kotlin {
