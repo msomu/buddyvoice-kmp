@@ -18,11 +18,22 @@ import org.jetbrains.compose.resources.painterResource
 
 import buddyvoice.sharedui.generated.resources.Res
 import buddyvoice.sharedui.generated.resources.compose_multiplatform
+import com.msomu.buddyvoice.voice.VoiceAgentController
+import com.msomu.buddyvoice.voice.VoiceAgentScreen
 
+/**
+ * Sample-app root. Platforms that have wired up voice support (Phase 1: Android)
+ * pass a [VoiceAgentController]; the rest pass `null` and keep the template demo
+ * until their phase lands.
+ */
 @Composable
 @Preview
-fun App() {
+fun App(voiceAgentController: VoiceAgentController? = null) {
     MaterialTheme {
+        if (voiceAgentController != null) {
+            VoiceAgentScreen(voiceAgentController, Modifier.safeContentPadding())
+            return@MaterialTheme
+        }
         var showContent by remember { mutableStateOf(false) }
         Column(
             modifier = Modifier
