@@ -1,0 +1,15 @@
+# Gitleaks configuration — CI fails if anything matching a secret pattern is committed.
+# Uses the default gitleaks rules; extend the allowlist only for placeholder files.
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Placeholder-only files"
+paths = [
+    '''.*\.example$''',
+]
+regexes = [
+    # Obvious placeholders used in docs and sample configs
+    '''YOUR_[A-Z_]+_HERE''',
+]
