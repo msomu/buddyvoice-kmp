@@ -1,6 +1,6 @@
 # BuddyVoice Architecture
 
-Status: Phase 1 (Android + Grok). See [PRD.md](PRD.md) for the full roadmap.
+Status: Phase 1 (Android + Grok) plus the Phase 5 web target (webApp + Web Audio actual). See [PRD.md](PRD.md) for the full roadmap.
 
 ## Module graph
 
@@ -87,4 +87,4 @@ locally (xAI documents no `response.cancel` yet); the app flushes local playback
 | Android | ✅ Phase 1 | Phase 3 | Phase 5 |
 | iOS | Phase 2 | Phase 3 | Phase 5 |
 | Desktop (JVM) | Phase 4 | Phase 4 | Phase 5 |
-| Web | Phase 5 | Phase 5 | Phase 5 |
+| Web | ✅ Phase 5 | Phase 5 | Phase 5 |
