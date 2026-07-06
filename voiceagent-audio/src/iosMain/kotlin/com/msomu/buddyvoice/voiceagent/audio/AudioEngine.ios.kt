@@ -46,6 +46,10 @@ import platform.posix.memcpy
  * mono boundary, and playback chunks are expanded to float32 with the engine
  * resampling up to hardware rate.
  *
+ * The input node opts into Apple voice processing so the mic gets echo
+ * cancellation against the loudspeaker — the iOS counterpart of the hardware
+ * AEC Android inherits from `VOICE_COMMUNICATION`.
+ *
  * The app owns the mic permission: request `NSMicrophoneUsageDescription`-backed
  * record permission before collecting [startCapture].
  */
@@ -82,12 +86,22 @@ actual class AudioEngine actual constructor() {
         val converter = AVAudioConverter(fromFormat = hardwareFormat, toFormat = captureFormat)
         val chunker = Pcm16Chunker()
         captureSink = this
-        input.installTapOnBus(0u, TAP_BUFFER_FRAMES, hardwareFormat) { buffer, _ ->
-            val inBuffer = buffer ?: return@installTapOnBus
-            val bytes = convertToBoundaryFormat(converter, inBuffer) ?: return@installTapOnBus
-            chunker.push(bytes) { chunk -> trySend(chunk) }
+        try {
+            input.installTapOnBus(0u, TAP_BUFFER_FRAMES, hardwareFormat) { buffer, _ ->
+                val inBuffer = buffer ?: return@installTapOnBus
+                val bytes = convertToBoundaryFormat(converter, inBuffer) ?: return@installTapOnBus
+                chunker.push(bytes) { chunk -> trySend(chunk) }
+            }
+            startEngine(engine)
+        } catch (t: Throwable) {
+            // awaitClose is not registered yet, so undo the partial setup here.
+            // Otherwise a failed engine start (audio-session interruption, another
+            // app holding the session) leaves the tap installed and captureSink
+            // non-null, bricking every later startCapture() until process restart.
+            input.removeTapOnBus(0u)
+            captureSink = null
+            throw t
         }
-        startEngine(engine)
         awaitClose {
             captureSink = null
             input.removeTapOnBus(0u)
@@ -127,6 +141,7 @@ actual class AudioEngine actual constructor() {
         engine?.let { return it }
         configureSession()
         val newEngine = AVAudioEngine()
+        enableEchoCancellation(newEngine)
         val newPlayer = AVAudioPlayerNode()
         newEngine.attachNode(newPlayer)
         newEngine.connect(newPlayer, to = newEngine.mainMixerNode, format = playbackFormat)
@@ -146,6 +161,28 @@ actual class AudioEngine actual constructor() {
                 error = error.ptr,
             )
             session.setActive(true, error.ptr)
+        }
+    }
+
+    /**
+     * Opts the engine's I/O nodes into Apple voice processing (echo cancellation).
+     *
+     * Android gets hardware AEC implicitly via `VOICE_COMMUNICATION`; iOS must
+     * enable it explicitly. Without it the open mic hears the agent's own playback
+     * tail — the half-duplex gate opens on TurnEnded (wire `response.done`) while
+     * up to ~2.5 s ([PLAYBACK_QUEUE_CHUNKS]) of scheduled audio is still coming out
+     * of the loudspeaker, so server VAD segments phantom user turns and the agent
+     * answers itself. Must run before the engine starts; enabling it on the input
+     * node ties the output node into the same voice-processing unit.
+     */
+    private fun enableEchoCancellation(engine: AVAudioEngine) {
+        memScoped {
+            val error = alloc<ObjCObjectVar<NSError?>>()
+            if (!engine.inputNode.setVoiceProcessingEnabled(true, error.ptr)) {
+                // Degraded but functional (e.g. simulator): capture still works,
+                // only the AEC is missing.
+                println("BuddyVoice: echo cancellation unavailable: ${error.value?.localizedDescription}")
+            }
         }
     }
 
