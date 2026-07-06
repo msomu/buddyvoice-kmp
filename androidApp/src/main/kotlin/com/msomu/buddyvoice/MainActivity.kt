@@ -17,6 +17,8 @@ class MainActivity : ComponentActivity() {
     private val requestMicPermission =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { /* state read lazily */ }
 
+    private var controller: AndroidVoiceAgentController? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
@@ -37,9 +39,18 @@ class MainActivity : ComponentActivity() {
             ),
             scope = lifecycleScope,
         )
+        this.controller = controller
 
         setContent {
             App(voiceAgentController = controller)
         }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        // The Phase 1 sample has no foreground service, so Android freezes the
+        // backgrounded process and severs the socket anyway. Disconnect cleanly
+        // instead of letting the user find a dead session with a raw SocketException.
+        controller?.disconnect()
     }
 }

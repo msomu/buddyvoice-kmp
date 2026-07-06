@@ -6,6 +6,7 @@ import com.msomu.buddyvoice.voiceagent.core.AgentEvent
 import com.msomu.buddyvoice.voiceagent.core.VoiceAgentConfig
 import com.msomu.buddyvoice.voiceagent.core.VoiceAgentProvider
 import com.msomu.buddyvoice.voiceagent.core.VoiceAgentSession
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -44,10 +45,15 @@ class AndroidVoiceAgentController(
                 val opened = provider.connect(config)
                 session = opened
                 _state.update { it.copy(connection = ConnectionState.Connected) }
+                // Open-mic UX: listen continuously and let the provider's server-side
+                // VAD segment turns; no hold-to-talk gesture.
+                startTalking()
                 opened.events.collect(::onAgentEvent)
                 // Events flow completed: the session is over.
                 onDisconnected()
             } catch (t: Throwable) {
+                if (t is CancellationException) throw t
+                android.util.Log.e("BuddyVoice", "connect/session failed", t)
                 session = null
                 _state.update {
                     it.copy(
@@ -65,8 +71,13 @@ class AndroidVoiceAgentController(
         _state.update { it.copy(userIsTalking = true) }
         captureJob = scope.launch {
             try {
-                audioEngine.startCapture().collect { chunk -> active.sendAudio(chunk) }
+                audioEngine.startCapture().collect { chunk ->
+                    // Half-duplex gate: drop mic audio while the agent is speaking so
+                    // it doesn't hear its own reply through the speaker.
+                    if (!_state.value.agentIsTalking) active.sendAudio(chunk)
+                }
             } catch (t: Throwable) {
+                if (t is CancellationException) throw t
                 _state.update { it.copy(errorMessage = t.message ?: t.toString()) }
             } finally {
                 _state.update { it.copy(userIsTalking = false) }
