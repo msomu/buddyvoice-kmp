@@ -50,15 +50,34 @@ fun VoiceAgentScreen(controller: VoiceAgentController, modifier: Modifier = Modi
         modifier = modifier.fillMaxSize().padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(
-            text = "BuddyVoice",
-            style = MaterialTheme.typography.titleMedium,
-        )
-        Text(
-            text = "Grok voice agent",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        Box(modifier = Modifier.fillMaxWidth()) {
+            Column(
+                modifier = Modifier.align(Alignment.Center),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(
+                    text = "BuddyVoice",
+                    style = MaterialTheme.typography.titleMedium,
+                )
+                Text(
+                    text = "Grok voice agent",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            if (state.transcript.isNotEmpty()) {
+                Text(
+                    text = "New chat",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .clip(CircleShape)
+                        .clickable(onClick = controller::clearConversation)
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                )
+            }
+        }
 
         if (state.transcript.isEmpty()) {
             EmptyHint(modifier = Modifier.weight(1f))
