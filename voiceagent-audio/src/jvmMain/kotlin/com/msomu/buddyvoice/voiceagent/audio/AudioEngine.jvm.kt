@@ -6,11 +6,14 @@ import javax.sound.sampled.AudioSystem
 import javax.sound.sampled.DataLine
 import javax.sound.sampled.SourceDataLine
 import javax.sound.sampled.TargetDataLine
+import kotlin.coroutines.coroutineContext
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -60,7 +63,16 @@ actual class AudioEngine actual constructor() {
 
     actual suspend fun play(chunk: ByteArray) {
         ensureLine()
-        playbackChannel.send(chunk)
+        try {
+            playbackChannel.send(chunk)
+        } catch (e: CancellationException) {
+            // stopPlayback() cancels the stale channel to flush it; a send()
+            // suspended on that channel resumes with a CancellationException that
+            // has nothing to do with our job being cancelled. Rethrow only real
+            // cancellation, otherwise drop the chunk — it belongs to the reply
+            // that was just interrupted.
+            coroutineContext.ensureActive()
+        }
     }
 
     actual fun stopPlayback() {
