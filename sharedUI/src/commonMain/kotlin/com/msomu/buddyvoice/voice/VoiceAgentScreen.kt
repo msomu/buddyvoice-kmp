@@ -54,11 +54,22 @@ fun VoiceAgentScreen(controller: VoiceAgentController, modifier: Modifier = Modi
             text = "BuddyVoice",
             style = MaterialTheme.typography.titleMedium,
         )
-        Text(
-            text = "Grok voice agent",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        val canPickProvider = controller.availableProviders.size > 1 &&
+            (state.connection == ConnectionState.Disconnected || state.connection == ConnectionState.Error)
+        if (canPickProvider) {
+            ProviderPicker(
+                providers = controller.availableProviders,
+                selectedId = state.selectedProviderId,
+                onSelect = controller::selectProvider,
+                modifier = Modifier.padding(top = 4.dp),
+            )
+        } else {
+            Text(
+                text = state.selectedProviderId?.let { "$it voice agent" } ?: "Voice agent",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
 
         if (state.transcript.isEmpty()) {
             EmptyHint(modifier = Modifier.weight(1f))
@@ -119,6 +130,35 @@ fun VoiceAgentScreen(controller: VoiceAgentController, modifier: Modifier = Modi
                         .padding(horizontal = 16.dp, vertical = 8.dp),
                 )
             }
+        }
+    }
+}
+
+/** Segmented row of provider ids, shown only while disconnected. */
+@Composable
+private fun ProviderPicker(
+    providers: List<String>,
+    selectedId: String?,
+    onSelect: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        providers.forEach { id ->
+            val isSelected = id == selectedId
+            Text(
+                text = id,
+                style = MaterialTheme.typography.labelMedium,
+                color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer
+                else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .background(
+                        if (isSelected) MaterialTheme.colorScheme.primaryContainer
+                        else MaterialTheme.colorScheme.surfaceVariant,
+                    )
+                    .clickable { onSelect(id) }
+                    .padding(horizontal = 12.dp, vertical = 6.dp),
+            )
         }
     }
 }
