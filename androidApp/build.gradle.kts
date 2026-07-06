@@ -1,3 +1,4 @@
+import java.util.Properties
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -13,11 +14,21 @@ kotlin {
 }
 dependencies {
     implementation(projects.sharedUI)
+    implementation(projects.voiceagentCore)
+    implementation(projects.voiceagentAudio)
+    implementation(projects.voiceagentProviderGrok)
 
     implementation(libs.androidx.activity.compose)
 
     implementation(libs.compose.uiToolingPreview)
     debugImplementation(libs.compose.uiTooling)
+}
+
+// Proxy settings for the sample app live in the untracked local.properties —
+// see server-proxy/README.md. Only placeholders may ever appear in the repo.
+val localProperties = Properties().apply {
+    val file = rootProject.file("local.properties")
+    if (file.exists()) file.inputStream().use { load(it) }
 }
 
 android {
@@ -30,6 +41,20 @@ android {
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 1
         versionName = "1.0"
+
+        buildConfigField(
+            "String",
+            "BUDDYVOICE_PROXY_BASE_URL",
+            "\"${localProperties.getProperty("buddyvoice.proxyBaseUrl", "")}\"",
+        )
+        buildConfigField(
+            "String",
+            "BUDDYVOICE_PROXY_KEY",
+            "\"${localProperties.getProperty("buddyvoice.proxyKey", "")}\"",
+        )
+    }
+    buildFeatures {
+        buildConfig = true
     }
     packaging {
         resources {

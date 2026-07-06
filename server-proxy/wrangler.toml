@@ -1,0 +1,13 @@
+# BuddyVoice token-mint proxy.
+#
+# Secrets are NEVER set here. Configure them per environment with:
+#   npx wrangler secret put XAI_API_KEY
+#   npx wrangler secret put BUDDYVOICE_PROXY_KEY
+# (add `--env dev` for the dev worker)
+
+name = "buddyvoice-proxy"
+main = "src/index.ts"
+compatibility_date = "2026-07-01"
+
+[env.dev]
+name = "buddyvoice-proxy-dev"

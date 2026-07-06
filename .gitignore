@@ -1,0 +1,37 @@
+# Gradle
+.gradle/
+build/
+**/build/
+.kotlin/
+kotlin-js-store/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Local configuration (never commit — holds machine paths and proxy config)
+local.properties
+
+# Secrets — no provider API key ever ships in this repo
+.env
+.env.*
+!.env.example
+!*.example
+server-proxy/.dev.vars
+server-proxy/.wrangler/
+*.keystore
+*.jks
+
+# Node
+node_modules/
+dist/
+
+# Xcode
+iosApp/iosApp.xcodeproj/xcuserdata/
+iosApp/iosApp.xcodeproj/project.xcworkspace/xcuserdata/
+DerivedData/
+
+# OS / misc
+.DS_Store
+captures/

@@ -1,0 +1,17 @@
+{
+  "name": "buddyvoice-server-proxy",
+  "version": "0.1.0",
+  "private": true,
+  "description": "BuddyVoice token-mint proxy: holds provider API keys as Cloudflare Worker Secrets and hands short-lived ephemeral tokens to clients.",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit",
+    "check": "wrangler deploy --dry-run"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250620.0",
+    "typescript": "^5.5.0",
+    "wrangler": "^4.0.0"
+  }
+}

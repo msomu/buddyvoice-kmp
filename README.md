@@ -1,51 +1,100 @@
-This is a Kotlin Multiplatform project targeting Android, iOS, Web, Desktop (JVM).
+# BuddyVoice KMP
 
-* [/iosApp](./iosApp/iosApp) contains an iOS application. Even if you’re sharing your UI with Compose Multiplatform,
-  you need this entry point for your iOS app. This is also where you should add SwiftUI code for your project.
+A Kotlin Multiplatform library that connects your app to **any realtime voice AI
+provider** (Grok today; OpenAI Realtime and ElevenLabs planned) through one common
+interface. Swapping providers is a config change, not a rewrite — and **no provider
+API key ever ships in client code**.
 
-* [/sharedLogic](./sharedLogic/src) is for the code that will be shared between app targets in the project.
-  The most important subfolder is [commonMain](./sharedLogic/src/commonMain/kotlin). If preferred, you
-  can add code to the platform-specific folders here too.
+```kotlin
+val session = GrokVoiceAgentProvider().connect(
+    VoiceAgentConfig(
+        proxyBaseUrl = "https://your-proxy.workers.dev", // your own token-mint proxy
+        proxyKey = yourSharedSecret,
+        systemPrompt = "You are Buddy, a friendly voice assistant.",
+    ),
+)
+session.events.collect { event ->
+    when (event) {
+        is AgentEvent.AudioChunk -> audioEngine.play(event.data)
+        is AgentEvent.PartialTranscript -> showTranscript(event.text)
+        // ...
+    }
+}
+```
 
-* [/sharedUI](./sharedUI/src) is for code that will be shared across your Compose Multiplatform applications.
-  It contains several subfolders:
-  - [commonMain](./sharedUI/src/commonMain/kotlin) is for code that’s common for all targets.
-  - Other folders are for Kotlin code that will be compiled for only the platform indicated in the folder name.
-    For example, if you want to use Apple’s CoreCrypto for the iOS part of your Kotlin app,
-    the [iosMain](./sharedUI/src/iosMain/kotlin) folder would be the right place for such calls.
-    Similarly, if you want to edit the Desktop (JVM) specific part, the [jvmMain](./sharedUI/src/jvmMain/kotlin)
-    folder is the appropriate location.
+## Support matrix (Phase 1)
 
-* [/webApp](./webApp) contains a React web application. It uses the Kotlin/JS library produced
-  by the [sharedLogic](./sharedLogic) module.
+| | Grok | OpenAI Realtime | ElevenLabs |
+|---|---|---|---|
+| Android | ✅ | Phase 3 | Phase 5 |
+| iOS | Phase 2 | Phase 3 | Phase 5 |
+| Desktop (JVM) | Phase 4 | Phase 4 | Phase 5 |
+| Web | Phase 5 | Phase 5 | Phase 5 |
 
-### Running the apps
+See [docs/PRD.md](docs/PRD.md) for the roadmap and
+[docs/architecture.md](docs/architecture.md) for how the pieces fit.
 
-Use the run configurations provided by the run widget in your IDE's toolbar. You can also use these commands and options:
+## Modules
 
-- Android app: `./gradlew :androidApp:assembleDebug`
-- Desktop app:
-  - Hot reload: `./gradlew :desktopApp:hotRun --auto`
-  - Standard run: `./gradlew :desktopApp:run`
-- Web app:
-  1. Install [Node.js](https://nodejs.org/en/download) (which includes `npm`)
-  2. Build and run the web application:
-     ```shell
-     npm run build:shared
-     npm install
-     npm run start
-     ```
-- iOS app: open the [/iosApp](./iosApp) directory in Xcode and run it from there.
+**Library (published as `io.github.msomu:buddyvoice-*`):**
 
-### Running tests
+* [voiceagent-core](./voiceagent-core/src) — `VoiceAgentProvider` / `VoiceAgentSession` /
+  `AgentEvent` interfaces. No platform code, no provider code. The contract everything implements.
+* [voiceagent-audio](./voiceagent-audio/src) — `expect/actual AudioEngine`: mic capture and
+  playback normalized to 16 kHz PCM16 mono (Android: `AudioRecord`/`AudioTrack`; other platforms
+  land per phase).
+* [voiceagent-transport](./voiceagent-transport/src) — shared Ktor WebSocket/HTTP client used by
+  WebSocket-based providers.
+* [voiceagent-provider-grok](./voiceagent-provider-grok/src) — xAI Grok Voice Agent API
+  implementation. The only module that knows Grok's wire format.
 
-Use the run button in your IDE's editor gutter, or run tests using Gradle tasks:
+**Backend:**
 
-- Android tests: `./gradlew :sharedUI:testAndroidHostTest :sharedLogic:testAndroidHostTest`
-- Desktop tests: `./gradlew :sharedUI:jvmTest :sharedLogic:jvmTest`
-- Web tests: `./gradlew :sharedLogic:jsTest`
-- iOS tests: `./gradlew :sharedLogic:iosSimulatorArm64Test`
+* [server-proxy](./server-proxy) — Cloudflare Worker that holds real provider keys as Worker
+  Secrets and mints short-lived ephemeral tokens for clients. Source-only, never published.
 
----
+**Sample apps** (source-only):
 
-Learn more about [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-multiplatform-dev/get-started.html)…
+* [androidApp](./androidApp) — Compose Android app with the Phase 1 voice demo (push-to-talk +
+  live transcript).
+* [desktopApp](./desktopApp) / [iosApp](./iosApp) / [webApp](./webApp) — per-platform sample
+  shells; they gain voice support as their phase lands.
+* [sharedLogic](./sharedLogic/src) / [sharedUI](./sharedUI/src) — code shared by the sample apps,
+  including the `VoiceAgentScreen` Compose UI.
+
+## Run the Android demo end-to-end
+
+1. **Deploy your own proxy (~5 minutes)** — follow [server-proxy/README.md](./server-proxy/README.md).
+   Your xAI key stays server-side as a Worker Secret; clients only ever hold ~5-minute tokens.
+2. **Point the app at it** — add to `local.properties` (gitignored, never commit it):
+   ```properties
+   buddyvoice.proxyBaseUrl=https://buddyvoice-proxy.YOUR_SUBDOMAIN.workers.dev
+   buddyvoice.proxyKey=YOUR_LONG_RANDOM_STRING_HERE
+   ```
+3. **Install and talk** — `./gradlew :androidApp:installDebug`, grant the microphone permission,
+   tap Connect, hold the button and talk.
+
+## Security model
+
+* No provider API key in any client, binary, or this repo's history — ever.
+* Clients authenticate to the proxy with a shared secret header (`X-BuddyVoice-Proxy-Key`);
+  the proxy mints ephemeral (~5 min) provider tokens and the client connects to the provider
+  directly. This gate stops casual scraping; add real user auth before production use.
+* `gitleaks` runs in CI on every push, and `scripts/pre-commit` runs it locally
+  (`git config core.hooksPath scripts` to enable).
+
+## Building
+
+```shell
+./gradlew build                          # everything buildable on your OS
+./gradlew :androidApp:assembleDebug      # Android sample
+./gradlew :desktopApp:run                # Desktop sample (template demo until Phase 4)
+./gradlew :voiceagent-provider-grok:jvmTest   # wire-protocol mapping tests
+```
+
+Web sample (template demo until Phase 5): `npm run build:shared && npm install && npm run start`.
+iOS sample: open [/iosApp](./iosApp) in Xcode.
+
+## License
+
+[MIT](LICENSE)
