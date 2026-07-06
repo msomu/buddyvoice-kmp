@@ -1,6 +1,6 @@
 # BuddyVoice Architecture
 
-Status: Phase 1 (Android + Grok). See [PRD.md](PRD.md) for the full roadmap.
+Status: Phase 3 (Android + Grok + OpenAI Realtime). See [PRD.md](PRD.md) for the full roadmap.
 
 ## Module graph
 
@@ -80,11 +80,37 @@ minutes. Browsers (Phase 5) will pass the token as the WebSocket subprotocol
 `interrupt()` sends `input_audio_buffer.clear` and emits a synthetic `TurnEnded`
 locally (xAI documents no `response.cancel` yet); the app flushes local playback.
 
+## OpenAI Realtime event mapping (Phase 3)
+
+`voiceagent-provider-openai` follows the same shape (POST `/session/openai` for an
+ephemeral token, then `wss://api.openai.com/v1/realtime?model=gpt-realtime`). Two
+provider-internal differences, both invisible outside the module:
+
+- **Audio rate** — OpenAI only speaks 24 kHz `audio/pcm`, so the session resamples
+  16 kHz boundary audio up on `sendAudio` and 24 kHz wire audio down before emitting
+  `AgentEvent.AudioChunk` (linear interpolation).
+- **User ASR is incremental** — OpenAI streams `conversation.item.input_audio_transcription.delta`
+  as increments (xAI sends cumulative text), so the mapper accumulates before emitting
+  the cumulative `PartialTranscript`.
+
+| OpenAI server event | AgentEvent |
+|---|---|
+| `response.created` | `TurnStarted` |
+| `response.output_audio.delta` (beta: `response.audio.delta`) | `AudioChunk` (base64-decoded, resampled to 16 kHz) |
+| `response.output_audio_transcript.delta` (beta: `response.audio_transcript.delta`) | `PartialTranscript(cumulative, isFinal=false)` |
+| `response.done` | final `PartialTranscript` + `TurnEnded` |
+| `conversation.item.input_audio_transcription.delta` | `PartialTranscript` (user speech, accumulated) |
+| `conversation.item.input_audio_transcription.completed` | final user `PartialTranscript` |
+| `error` | `Error` |
+| anything else | ignored (lenient by design) |
+
+`interrupt()` sends `response.cancel` plus a synthetic local `TurnEnded`.
+
 ## Support matrix
 
 | | Grok | OpenAI Realtime | ElevenLabs |
 |---|---|---|---|
-| Android | ✅ Phase 1 | Phase 3 | Phase 5 |
+| Android | ✅ Phase 1 | ✅ Phase 3 | Phase 5 |
 | iOS | Phase 2 | Phase 3 | Phase 5 |
 | Desktop (JVM) | Phase 4 | Phase 4 | Phase 5 |
 | Web | Phase 5 | Phase 5 | Phase 5 |
