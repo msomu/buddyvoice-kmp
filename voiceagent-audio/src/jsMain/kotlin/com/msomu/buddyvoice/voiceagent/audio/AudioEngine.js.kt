@@ -2,6 +2,7 @@ package com.msomu.buddyvoice.voiceagent.audio
 
 import kotlinx.browser.document
 import kotlinx.browser.window
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.await
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.delay
@@ -44,48 +45,81 @@ actual class AudioEngine actual constructor() {
         val stream = window.navigator.mediaDevices
             .getUserMedia(MediaStreamConstraints(audio = CAPTURE_CONSTRAINTS()))
             .await()
-        val source = ctx.createMediaStreamSource(stream)
-        val chunker = PcmChunker(ctx.sampleRate.toDouble()) { chunk -> trySend(chunk) }
-        // Muted sink keeps the graph pulled without echoing the mic to the speakers.
-        val sink = ctx.createGain().apply { gain.value = 0f }
-        sink.connect(ctx.destination)
-
+        // The mic is live from here on: every exit path below — including setup
+        // failures before awaitClose registers — must run teardown(), or the
+        // browser keeps the mic hot for the page lifetime with no engine API
+        // able to release it.
+        var source: AudioNode? = null
+        var sink: GainNode? = null
         var workletNode: AudioWorkletNode? = null
         var scriptNode: ScriptProcessorNode? = null
-        if (ctx.asDynamic().audioWorklet != null) {
-            ctx.audioWorklet.addModule(captureModuleUrl).await()
-            val node = AudioWorkletNode(ctx, CAPTURE_PROCESSOR_NAME)
-            node.port.onmessage = { event ->
-                chunker.accept(event.data.unsafeCast<Float32Array>().unsafeCast<FloatArray>())
+
+        fun teardown() {
+            workletNode?.let {
+                it.port.onmessage = null
+                runCatching { it.disconnect() }
             }
-            source.connect(node)
-            node.connect(sink)
-            workletNode = node
-        } else {
-            val node = ctx.createScriptProcessor(SCRIPT_PROCESSOR_BLOCK, 1, 1)
-            node.onaudioprocess = { event ->
-                chunker.accept(event.inputBuffer.getChannelData(0).unsafeCast<FloatArray>())
+            scriptNode?.let {
+                it.onaudioprocess = null
+                runCatching { it.disconnect() }
             }
-            source.connect(node)
-            node.connect(sink)
-            scriptNode = node
+            source?.let { runCatching { it.disconnect() } }
+            sink?.let { runCatching { it.disconnect() } }
+            stream.getTracks().forEach { runCatching { it.stop() } }
+        }
+
+        try {
+            val chunker = PcmChunker(ctx.sampleRate.toDouble()) { chunk -> trySend(chunk) }
+            val src = ctx.createMediaStreamSource(stream)
+            source = src
+            // Muted sink keeps the graph pulled without echoing the mic to the speakers.
+            val muted = ctx.createGain().apply { gain.value = 0f }
+            muted.connect(ctx.destination)
+            sink = muted
+
+            val worklet = if (ctx.asDynamic().audioWorklet != null) createWorkletNode(ctx) else null
+            if (worklet != null) {
+                worklet.port.onmessage = { event ->
+                    chunker.accept(event.data.unsafeCast<Float32Array>().unsafeCast<FloatArray>())
+                }
+                src.connect(worklet)
+                worklet.connect(muted)
+                workletNode = worklet
+            } else {
+                val node = ctx.createScriptProcessor(SCRIPT_PROCESSOR_BLOCK, 1, 1)
+                node.onaudioprocess = { event ->
+                    chunker.accept(event.inputBuffer.getChannelData(0).unsafeCast<FloatArray>())
+                }
+                src.connect(node)
+                node.connect(muted)
+                scriptNode = node
+            }
+        } catch (t: Throwable) {
+            teardown()
+            throw t
         }
 
         captureClose = { close() }
         awaitClose {
             captureClose = null
-            workletNode?.let {
-                it.port.onmessage = null
-                it.disconnect()
-            }
-            scriptNode?.let {
-                it.onaudioprocess = null
-                it.disconnect()
-            }
-            source.disconnect()
-            sink.disconnect()
-            stream.getTracks().forEach { runCatching { it.stop() } }
+            teardown()
         }
+    }
+
+    /**
+     * Registers the capture worklet module and constructs its node, or returns
+     * null to fall back to `ScriptProcessorNode` when the worklet path fails —
+     * realistically a strict host-page CSP (`script-src`/`worker-src` without
+     * `blob:`) rejecting [captureModuleUrl].
+     */
+    private suspend fun createWorkletNode(ctx: AudioContext): AudioWorkletNode? = try {
+        ctx.audioWorklet.addModule(captureModuleUrl).await()
+        AudioWorkletNode(ctx, CAPTURE_PROCESSOR_NAME)
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Throwable) {
+        console.warn("BuddyVoice: AudioWorklet unavailable, using ScriptProcessorNode", e)
+        null
     }
 
     actual fun stopCapture() {
