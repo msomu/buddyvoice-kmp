@@ -28,7 +28,7 @@ session.events.collect { event ->
 |---|---|---|---|
 | Android | ✅ | Phase 3 | Phase 5 |
 | iOS | Phase 2 | Phase 3 | Phase 5 |
-| Desktop (JVM) | Phase 4 | Phase 4 | Phase 5 |
+| Desktop (JVM) | ✅ | Phase 4 | Phase 5 |
 | Web | Phase 5 | Phase 5 | Phase 5 |
 
 See [docs/PRD.md](docs/PRD.md) for the roadmap and
@@ -41,8 +41,8 @@ See [docs/PRD.md](docs/PRD.md) for the roadmap and
 * [voiceagent-core](./voiceagent-core/src) — `VoiceAgentProvider` / `VoiceAgentSession` /
   `AgentEvent` interfaces. No platform code, no provider code. The contract everything implements.
 * [voiceagent-audio](./voiceagent-audio/src) — `expect/actual AudioEngine`: mic capture and
-  playback normalized to 16 kHz PCM16 mono (Android: `AudioRecord`/`AudioTrack`; other platforms
-  land per phase).
+  playback normalized to 16 kHz PCM16 mono (Android: `AudioRecord`/`AudioTrack`; Desktop:
+  `javax.sound.sampled`; other platforms land per phase).
 * [voiceagent-transport](./voiceagent-transport/src) — shared Ktor WebSocket/HTTP client used by
   WebSocket-based providers.
 * [voiceagent-provider-grok](./voiceagent-provider-grok/src) — xAI Grok Voice Agent API

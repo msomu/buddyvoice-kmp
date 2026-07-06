@@ -32,7 +32,7 @@ Status: Phase 1 (Android + Grok). See [PRD.md](PRD.md) for the full roadmap.
 Key seams:
 
 - **Provider isolation** — only `voiceagent-provider-grok` knows Grok's wire format. App code sees `VoiceAgentProvider` / `VoiceAgentSession` / `AgentEvent`.
-- **UI seam** — `sharedUI` defines a small `VoiceAgentController` interface and state model; it does not depend on any voiceagent module. `androidApp` implements the controller by wiring `AudioEngine` + `GrokVoiceAgentProvider`. Desktop keeps compiling with `controller = null` until Phase 4.
+- **UI seam** — `sharedUI` defines a small `VoiceAgentController` interface and state model; it does not depend on any voiceagent module. `androidApp` and `desktopApp` implement the controller by wiring `AudioEngine` + `GrokVoiceAgentProvider`. Platforms whose phase hasn't landed keep compiling with `controller = null`.
 - **Audio isolation** — providers never touch `voiceagent-audio`. Audio bytes cross the boundary as plain `ByteArray` at the app layer.
 
 ## Audio contract
@@ -86,5 +86,5 @@ locally (xAI documents no `response.cancel` yet); the app flushes local playback
 |---|---|---|---|
 | Android | ✅ Phase 1 | Phase 3 | Phase 5 |
 | iOS | Phase 2 | Phase 3 | Phase 5 |
-| Desktop (JVM) | Phase 4 | Phase 4 | Phase 5 |
+| Desktop (JVM) | ✅ Phase 4 | Phase 4 | Phase 5 |
 | Web | Phase 5 | Phase 5 | Phase 5 |
