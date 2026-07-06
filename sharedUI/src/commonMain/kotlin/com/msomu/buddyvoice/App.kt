@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.safeContentPadding
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -31,7 +32,11 @@ import com.msomu.buddyvoice.voice.VoiceAgentScreen
 fun App(voiceAgentController: VoiceAgentController? = null) {
     MaterialTheme {
         if (voiceAgentController != null) {
-            VoiceAgentScreen(voiceAgentController, Modifier.safeContentPadding())
+            // Surface paints the themed background: on web/desktop the canvas has
+            // no window background behind it, unlike an Android Activity.
+            Surface(modifier = Modifier.fillMaxSize()) {
+                VoiceAgentScreen(voiceAgentController, Modifier.safeContentPadding())
+            }
             return@MaterialTheme
         }
         var showContent by remember { mutableStateOf(false) }

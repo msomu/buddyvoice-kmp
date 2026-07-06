@@ -9,7 +9,11 @@ plugins {
 
 kotlin {
     jvm()
-    
+
+    js {
+        browser()
+    }
+
     androidLibrary {
        namespace = "com.msomu.buddyvoice.sharedUI"
        compileSdk = libs.versions.android.compileSdk.get().toInt()
