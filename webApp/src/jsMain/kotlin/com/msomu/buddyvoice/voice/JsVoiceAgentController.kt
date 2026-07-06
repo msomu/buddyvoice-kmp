@@ -158,6 +158,11 @@ class JsVoiceAgentController(
         }
     }
 
+    override fun clearConversation() {
+        disconnect()
+        _state.update { it.copy(transcript = emptyList(), errorMessage = null) }
+    }
+
     private fun onDisconnected() {
         _state.update {
             it.copy(

@@ -32,6 +32,14 @@ interface VoiceAgentController {
     fun interrupt()
 
     fun disconnect()
+
+    /**
+     * Starts a new chat: ends the current session (provider context lives
+     * server-side, so a fresh session is a fresh conversation) and clears the
+     * transcript. Default is a no-op so platform controllers can adopt it
+     * independently.
+     */
+    fun clearConversation() {}
 }
 
 enum class ConnectionState { Disconnected, Connecting, Connected, Error }
