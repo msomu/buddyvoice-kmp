@@ -38,6 +38,39 @@ class GrokServerEventMapperTest {
     }
 
     @Test
+    fun audioDeltaDecodesBase64FromDeltaField() {
+        // Live xAI schema (captured 2026-07-06): audio arrives in "delta", not "audio".
+        val pcm = byteArrayOf(9, 8, 7, 6)
+        val raw = """{"type":"response.output_audio.delta","delta":"${Base64.encode(pcm)}","item_id":"i1"}"""
+
+        val events = map(raw)
+
+        val chunk = assertIs<AgentEvent.AudioChunk>(events.single())
+        assertContentEquals(pcm, chunk.data)
+    }
+
+    @Test
+    fun outputAudioTranscriptDeltasAccumulateAcrossEvents() {
+        // Live xAI schema: agent transcript streams as response.output_audio_transcript.delta.
+        val text = StringBuilder()
+
+        val first = map(
+            """{"type":"response.output_audio_transcript.delta","delta":"I'm sorry,","start_time":0.0}""",
+            text,
+        )
+        val second = map(
+            """{"type":"response.output_audio_transcript.delta","delta":" but I don't know","start_time":1.6}""",
+            text,
+        )
+
+        assertEquals(listOf(AgentEvent.PartialTranscript("I'm sorry,", isFinal = false)), first)
+        assertEquals(
+            listOf(AgentEvent.PartialTranscript("I'm sorry, but I don't know", isFinal = false)),
+            second,
+        )
+    }
+
+    @Test
     fun textDeltasAccumulateAcrossEvents() {
         val text = StringBuilder()
 
@@ -76,6 +109,15 @@ class GrokServerEventMapperTest {
             map("""{"type":"conversation.item.input_audio_transcription.updated","transcript":"How is the"}""")
 
         assertEquals(listOf(AgentEvent.PartialTranscript("How is the", isFinal = false)), events)
+    }
+
+    @Test
+    fun userTranscriptionCompletedIsFinal() {
+        // Live xAI schema: final ASR arrives as ...input_audio_transcription.completed.
+        val events =
+            map("""{"type":"conversation.item.input_audio_transcription.completed","transcript":"What is the time?","status":"completed"}""")
+
+        assertEquals(listOf(AgentEvent.PartialTranscript("What is the time?", isFinal = true)), events)
     }
 
     @Test

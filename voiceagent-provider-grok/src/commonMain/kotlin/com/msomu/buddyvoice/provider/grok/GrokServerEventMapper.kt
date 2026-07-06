@@ -24,13 +24,16 @@ internal fun mapServerEvent(event: JsonObject, assistantText: StringBuilder): Li
             listOf(AgentEvent.TurnStarted)
         }
 
+        // xAI carries the base64 audio in "delta" (like its transcript deltas);
+        // "audio" is kept as a fallback for older captures of the schema.
         "response.output_audio.delta" ->
-            event["audio"]?.jsonPrimitive?.contentOrNull
+            (event["delta"] ?: event["audio"])?.jsonPrimitive?.contentOrNull
                 ?.let { listOf(AgentEvent.AudioChunk(Base64.decode(it))) }
                 ?: emptyList()
 
-        "response.text.delta" ->
-            event["text"]?.jsonPrimitive?.contentOrNull
+        // Agent-speech transcript, streamed as incremental deltas.
+        "response.output_audio_transcript.delta", "response.text.delta" ->
+            (event["delta"] ?: event["text"])?.jsonPrimitive?.contentOrNull
                 ?.let {
                     assistantText.append(it)
                     listOf(AgentEvent.PartialTranscript(assistantText.toString(), isFinal = false))
@@ -49,6 +52,12 @@ internal fun mapServerEvent(event: JsonObject, assistantText: StringBuilder): Li
         "conversation.item.input_audio_transcription.updated" ->
             event["transcript"]?.jsonPrimitive?.contentOrNull
                 ?.let { listOf(AgentEvent.PartialTranscript(it, isFinal = false)) }
+                ?: emptyList()
+
+        // Final user ASR, emitted once the input buffer is committed.
+        "conversation.item.input_audio_transcription.completed" ->
+            event["transcript"]?.jsonPrimitive?.contentOrNull
+                ?.let { listOf(AgentEvent.PartialTranscript(it, isFinal = true)) }
                 ?: emptyList()
 
         "error" -> listOf(AgentEvent.Error(GrokProtocolException(event.toString())))
