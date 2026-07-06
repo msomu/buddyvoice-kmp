@@ -181,10 +181,12 @@ private fun Orb(
 private fun Transcript(lines: List<TranscriptLine>, modifier: Modifier = Modifier) {
     val listState = rememberLazyListState()
     LaunchedEffect(lines.size) {
-        if (lines.isNotEmpty()) listState.animateScrollToItem(lines.lastIndex)
+        if (lines.isNotEmpty()) listState.animateScrollToItem(0)
     }
-    LazyColumn(state = listState, modifier = modifier) {
-        items(lines) { line ->
+    // ChatGPT-style: conversation is anchored to the bottom and grows upward.
+    // With reverseLayout, index 0 sits at the bottom, so the list is fed newest-first.
+    LazyColumn(state = listState, reverseLayout = true, modifier = modifier) {
+        items(lines.asReversed()) { line ->
             TranscriptBubble(line)
         }
     }
