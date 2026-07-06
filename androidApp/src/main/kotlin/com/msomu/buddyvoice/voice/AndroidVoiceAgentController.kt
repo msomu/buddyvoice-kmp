@@ -67,7 +67,10 @@ class AndroidVoiceAgentController(
 
     override fun startTalking() {
         val active = session ?: return
-        if (captureJob != null) return
+        // isActive (not null) check: the capture coroutine can die on its own —
+        // sendAudio failing after a session drop, or the session ending — and the
+        // completed Job would otherwise block the mic on the next connect().
+        if (captureJob?.isActive == true) return
         _state.update { it.copy(userIsTalking = true) }
         captureJob = scope.launch {
             try {
