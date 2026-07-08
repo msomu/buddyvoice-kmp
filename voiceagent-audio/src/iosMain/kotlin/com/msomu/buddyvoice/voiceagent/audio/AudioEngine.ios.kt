@@ -33,6 +33,7 @@ import platform.AVFAudio.AVAudioSession
 import platform.AVFAudio.AVAudioSessionCategoryOptionAllowBluetooth
 import platform.AVFAudio.AVAudioSessionCategoryOptionDefaultToSpeaker
 import platform.AVFAudio.AVAudioSessionCategoryPlayAndRecord
+import platform.AVFAudio.AVAudioSessionModeVoiceChat
 import platform.AVFAudio.setActive
 import platform.Foundation.NSError
 import platform.posix.memcpy
@@ -154,9 +155,13 @@ actual class AudioEngine actual constructor() {
         val session = AVAudioSession.sharedInstance()
         memScoped {
             val error = alloc<ObjCObjectVar<NSError?>>()
+            // voiceChat mode is the documented pairing for the voice-processing
+            // unit enabled in ensureEngine; without it some devices (seen on
+            // iPad 8) never deliver input-tap callbacks at all.
             session.setCategory(
                 AVAudioSessionCategoryPlayAndRecord,
-                withOptions = AVAudioSessionCategoryOptionDefaultToSpeaker or
+                mode = AVAudioSessionModeVoiceChat,
+                options = AVAudioSessionCategoryOptionDefaultToSpeaker or
                     AVAudioSessionCategoryOptionAllowBluetooth,
                 error = error.ptr,
             )
