@@ -10,6 +10,10 @@ plugins {
 kotlin {
     jvm()
 
+    js {
+        browser()
+    }
+
     // iOS consumes the sample UI as a single framework. sharedUI's iosMain also
     // hosts the app-layer wiring (IosVoiceAgentController + MainViewController)
     // because the Swift shell cannot host Kotlin the way androidApp does — see

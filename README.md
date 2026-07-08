@@ -22,14 +22,17 @@ session.events.collect { event ->
 }
 ```
 
-## Support matrix (Phase 4)
+## Support matrix
 
 | | Grok | OpenAI Realtime | ElevenLabs |
 |---|---|---|---|
-| Android | ✅ | ✅ | Phase 5 |
-| iOS | ✅ | Phase 3 | Phase 5 |
-| Desktop (JVM) | ✅ | Phase 4 | Phase 5 |
-| Web | Phase 5 | Phase 5 | Phase 5 |
+| Android | ✅ | ✅ | later |
+| iOS | ✅ | Phase 3 | later |
+| Desktop (JVM) | ✅ | Phase 4 | later |
+| Web | ✅ | Phase 5 | later |
+
+ElevenLabs speaks WebRTC, not WebSocket, so its provider ships separately with
+its own transport (see the PRD).
 
 See [docs/PRD.md](docs/PRD.md) for the roadmap and
 [docs/architecture.md](docs/architecture.md) for how the pieces fit.
@@ -60,7 +63,9 @@ See [docs/PRD.md](docs/PRD.md) for the roadmap and
 * [androidApp](./androidApp) — Compose Android app with the Phase 1 voice demo (push-to-talk +
   live transcript).
 * [iosApp](./iosApp) — SwiftUI shell hosting the same shared Compose voice demo (Phase 2).
-* [desktopApp](./desktopApp) / [webApp](./webApp) — per-platform sample shells; they gain voice
+* [webApp](./webApp) — Kotlin/JS Compose app with the same voice demo running in the browser
+  (Phase 5).
+* [desktopApp](./desktopApp) — per-platform sample shells; they gain voice
   support as their phase lands.
 * [sharedLogic](./sharedLogic/src) / [sharedUI](./sharedUI/src) — code shared by the sample apps,
   including the `VoiceAgentScreen` Compose UI.
@@ -103,7 +108,11 @@ See [docs/PRD.md](docs/PRD.md) for the roadmap and
 ./gradlew :voiceagent-provider-grok:jvmTest   # wire-protocol mapping tests
 ```
 
-Web sample (template demo until Phase 5): `npm run build:shared && npm install && npm run start`.
+Web sample: `./gradlew :webApp:jsBrowserDevelopmentRun`, then either pass
+`?proxyUrl=...&proxyKey=...` as query params or copy
+[webApp/src/jsMain/resources/local.config.example.js](./webApp/src/jsMain/resources/local.config.example.js)
+to `local.config.js` (gitignored) next to it. Chrome/Edge/Firefox use an
+`AudioWorklet` for capture; the mic prompt appears on the first orb tap.
 
 ## License
 

@@ -1,6 +1,6 @@
 # BuddyVoice Architecture
 
-Status: Phase 4 (Android + iOS + Desktop + Grok + OpenAI Realtime). See [PRD.md](PRD.md) for the full roadmap.
+Status: Phase 5, part 1 (Android + iOS + Desktop + Web, Grok + OpenAI Realtime). See [PRD.md](PRD.md) for the full roadmap.
 
 ## Module graph
 
@@ -114,4 +114,4 @@ provider-internal differences, both invisible outside the module:
 | Android | ✅ Phase 1 | ✅ Phase 3 | Phase 5 |
 | iOS | ✅ Phase 2 | Phase 3 | Phase 5 |
 | Desktop (JVM) | ✅ Phase 4 | Phase 4 | Phase 5 |
-| Web | Phase 5 | Phase 5 | Phase 5 |
+| Web | ✅ Phase 5 | Phase 5 | Phase 5 |

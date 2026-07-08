@@ -34,6 +34,7 @@ plugins {
 
 include(":androidApp")
 include(":desktopApp")
+include(":webApp")
 include(":sharedLogic")
 include(":sharedUI")
 include(":voiceagent-core")

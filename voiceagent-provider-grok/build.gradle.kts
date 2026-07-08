@@ -57,7 +57,10 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             api(projects.voiceagentCore)
-            implementation(projects.voiceagentTransport)
+            // `api`, not `implementation`: GrokVoiceAgentProvider's public constructor
+            // takes a RealtimeClient, which Kotlin/JS consumers must be able to
+            // resolve at compile time (see docs/adr/0001).
+            api(projects.voiceagentTransport)
             implementation(libs.kotlinx.serialization.json)
         }
         commonTest.dependencies {

@@ -56,7 +56,11 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             api(libs.kotlinx.coroutines.core)
-            implementation(libs.ktor.client.core)
+            // `api`, not `implementation`: RealtimeClient's public constructors take
+            // HttpClientEngine(Factory), and Kotlin/JS klib linkage prunes any
+            // declaration whose signature references symbols missing from the
+            // consumer's compile classpath (see docs/adr/0001).
+            api(libs.ktor.client.core)
             implementation(libs.ktor.client.websockets)
         }
         commonTest.dependencies {
