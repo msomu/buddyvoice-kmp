@@ -9,7 +9,21 @@ plugins {
 
 kotlin {
     jvm()
-    
+
+    // iOS consumes the sample UI as a single framework. sharedUI's iosMain also
+    // hosts the app-layer wiring (IosVoiceAgentController + MainViewController)
+    // because the Swift shell cannot host Kotlin the way androidApp does — see
+    // docs/architecture.md.
+    listOf(
+        iosArm64(),
+        iosSimulatorArm64(),
+    ).forEach { iosTarget ->
+        iosTarget.binaries.framework {
+            baseName = "SharedUI"
+            isStatic = true
+        }
+    }
+
     androidLibrary {
        namespace = "com.msomu.buddyvoice.sharedUI"
        compileSdk = libs.versions.android.compileSdk.get().toInt()
@@ -43,6 +57,13 @@ kotlin {
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
+        }
+        // App-layer wiring for the iOS sample only; commonMain stays free of
+        // voiceagent dependencies (the UI seam).
+        iosMain.dependencies {
+            implementation(projects.voiceagentCore)
+            implementation(projects.voiceagentAudio)
+            implementation(projects.voiceagentProviderGrok)
         }
     }
 }
