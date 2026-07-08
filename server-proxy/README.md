@@ -19,6 +19,7 @@ npx wrangler login
 
 # 2. Set the secrets (you'll be prompted for the values — they are never stored in the repo)
 npx wrangler secret put XAI_API_KEY            # your xAI key
+npx wrangler secret put OPENAI_API_KEY         # optional: your OpenAI key, only for /session/openai
 npx wrangler secret put BUDDYVOICE_PROXY_KEY   # invent a long random string, e.g. `openssl rand -hex 32`
 
 # 3. Ship it
@@ -42,9 +43,23 @@ buddyvoice.proxyKey=THE_SAME_LONG_RANDOM_STRING
 curl -X POST \
   -H "X-BuddyVoice-Proxy-Key: THE_SAME_LONG_RANDOM_STRING" \
   https://buddyvoice-proxy.YOUR_SUBDOMAIN.workers.dev/session/grok
+
+curl -X POST \
+  -H "X-BuddyVoice-Proxy-Key: THE_SAME_LONG_RANDOM_STRING" \
+  https://buddyvoice-proxy.YOUR_SUBDOMAIN.workers.dev/session/openai
 ```
 
 You should get JSON containing a short-lived token. Without the header you get a 401.
+
+## Routes
+
+| Route | Provider | Upstream | Worker Secret |
+|---|---|---|---|
+| `POST /session/grok` | xAI Grok | `POST https://api.x.ai/v1/realtime/client_secrets` | `XAI_API_KEY` |
+| `POST /session/openai` | OpenAI Realtime | `POST https://api.openai.com/v1/realtime/client_secrets` | `OPENAI_API_KEY` |
+
+`/session/openai` returns `501` if `OPENAI_API_KEY` is not set on the worker —
+the secret is only required if you actually use the OpenAI provider.
 
 ## Local development
 

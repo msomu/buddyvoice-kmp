@@ -1,6 +1,6 @@
 # BuddyVoice Architecture
 
-Status: Phase 1 (Android + Grok) plus the Phase 5 web target (webApp + Web Audio actual). See [PRD.md](PRD.md) for the full roadmap.
+Status: Phase 5, part 1 (Android + iOS + Desktop + Web, Grok + OpenAI Realtime). See [PRD.md](PRD.md) for the full roadmap.
 
 ## Module graph
 
@@ -32,7 +32,8 @@ Status: Phase 1 (Android + Grok) plus the Phase 5 web target (webApp + Web Audio
 Key seams:
 
 - **Provider isolation** — only `voiceagent-provider-grok` knows Grok's wire format. App code sees `VoiceAgentProvider` / `VoiceAgentSession` / `AgentEvent`.
-- **UI seam** — `sharedUI` defines a small `VoiceAgentController` interface and state model; it does not depend on any voiceagent module. `androidApp` implements the controller by wiring `AudioEngine` + `GrokVoiceAgentProvider`. Desktop keeps compiling with `controller = null` until Phase 4.
+- **UI seam** — `sharedUI` defines a small `VoiceAgentController` interface and state model; its commonMain does not depend on any voiceagent module. `androidApp` and `desktopApp` implement the controller by wiring `AudioEngine` + `GrokVoiceAgentProvider`. Platforms whose phase hasn't landed keep compiling with `controller = null`.
+- **iOS wiring exception** — the Swift shell cannot host Kotlin the way `androidApp` does, so `sharedUI`'s **iosMain** (and only iosMain) plays the app-layer role: it holds `IosVoiceAgentController` (a mirror of `AndroidVoiceAgentController`), the `MainViewController` entry point, and the framework's voiceagent dependencies. `iosApp` stays a thin SwiftUI shell that reads proxy config from the gitignored `BuddyVoiceConfig.plist` and hands it to the Kotlin side.
 - **Audio isolation** — providers never touch `voiceagent-audio`. Audio bytes cross the boundary as plain `ByteArray` at the app layer.
 
 ## Audio contract
@@ -80,11 +81,37 @@ minutes. Browsers (Phase 5) will pass the token as the WebSocket subprotocol
 `interrupt()` sends `input_audio_buffer.clear` and emits a synthetic `TurnEnded`
 locally (xAI documents no `response.cancel` yet); the app flushes local playback.
 
+## OpenAI Realtime event mapping (Phase 3)
+
+`voiceagent-provider-openai` follows the same shape (POST `/session/openai` for an
+ephemeral token, then `wss://api.openai.com/v1/realtime?model=gpt-realtime`). Two
+provider-internal differences, both invisible outside the module:
+
+- **Audio rate** — OpenAI only speaks 24 kHz `audio/pcm`, so the session resamples
+  16 kHz boundary audio up on `sendAudio` and 24 kHz wire audio down before emitting
+  `AgentEvent.AudioChunk` (linear interpolation).
+- **User ASR is incremental** — OpenAI streams `conversation.item.input_audio_transcription.delta`
+  as increments (xAI sends cumulative text), so the mapper accumulates before emitting
+  the cumulative `PartialTranscript`.
+
+| OpenAI server event | AgentEvent |
+|---|---|
+| `response.created` | `TurnStarted` |
+| `response.output_audio.delta` (beta: `response.audio.delta`) | `AudioChunk` (base64-decoded, resampled to 16 kHz) |
+| `response.output_audio_transcript.delta` (beta: `response.audio_transcript.delta`) | `PartialTranscript(cumulative, isFinal=false)` |
+| `response.done` | final `PartialTranscript` + `TurnEnded` |
+| `conversation.item.input_audio_transcription.delta` | `PartialTranscript` (user speech, accumulated) |
+| `conversation.item.input_audio_transcription.completed` | final user `PartialTranscript` |
+| `error` | `Error` |
+| anything else | ignored (lenient by design) |
+
+`interrupt()` sends `response.cancel` plus a synthetic local `TurnEnded`.
+
 ## Support matrix
 
 | | Grok | OpenAI Realtime | ElevenLabs |
 |---|---|---|---|
-| Android | ✅ Phase 1 | Phase 3 | Phase 5 |
-| iOS | Phase 2 | Phase 3 | Phase 5 |
-| Desktop (JVM) | Phase 4 | Phase 4 | Phase 5 |
+| Android | ✅ Phase 1 | ✅ Phase 3 | Phase 5 |
+| iOS | ✅ Phase 2 | Phase 3 | Phase 5 |
+| Desktop (JVM) | ✅ Phase 4 | Phase 4 | Phase 5 |
 | Web | ✅ Phase 5 | Phase 5 | Phase 5 |

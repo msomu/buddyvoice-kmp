@@ -12,7 +12,11 @@ kotlin-js-store/
 
 # Local configuration (never commit — holds machine paths and proxy config)
 local.properties
+<<<<<<< HEAD
 webApp/src/jsMain/resources/local.config.js
+=======
+iosApp/iosApp/BuddyVoiceConfig.plist
+>>>>>>> origin/main
 
 # Secrets — no provider API key ever ships in this repo
 .env

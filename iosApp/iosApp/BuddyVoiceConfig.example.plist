@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!--
+	Copy this file to BuddyVoiceConfig.plist (gitignored) and fill in your own
+	proxy deployment — see server-proxy/README.md. Placeholders only here:
+	no provider API key ever ships in this repo or app.
+	-->
+	<key>ProxyBaseURL</key>
+	<string>https://your-worker.your-subdomain.workers.dev</string>
+	<key>ProxyKey</key>
+	<string>YOUR_PROXY_SHARED_SECRET</string>
+</dict>
+</plist>
