@@ -4,5 +4,7 @@
 <dict>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>BuddyVoice streams your voice to the AI agent you are talking to.</string>
 </dict>
 </plist>

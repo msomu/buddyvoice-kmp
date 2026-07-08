@@ -22,12 +22,12 @@ session.events.collect { event ->
 }
 ```
 
-## Support matrix (Phase 1)
+## Support matrix (Phase 2)
 
 | | Grok | OpenAI Realtime | ElevenLabs |
 |---|---|---|---|
 | Android | ✅ | Phase 3 | Phase 5 |
-| iOS | Phase 2 | Phase 3 | Phase 5 |
+| iOS | ✅ | Phase 3 | Phase 5 |
 | Desktop (JVM) | Phase 4 | Phase 4 | Phase 5 |
 | Web | Phase 5 | Phase 5 | Phase 5 |
 
@@ -41,8 +41,8 @@ See [docs/PRD.md](docs/PRD.md) for the roadmap and
 * [voiceagent-core](./voiceagent-core/src) — `VoiceAgentProvider` / `VoiceAgentSession` /
   `AgentEvent` interfaces. No platform code, no provider code. The contract everything implements.
 * [voiceagent-audio](./voiceagent-audio/src) — `expect/actual AudioEngine`: mic capture and
-  playback normalized to 16 kHz PCM16 mono (Android: `AudioRecord`/`AudioTrack`; other platforms
-  land per phase).
+  playback normalized to 16 kHz PCM16 mono (Android: `AudioRecord`/`AudioTrack`; iOS:
+  `AVAudioEngine`; other platforms land per phase).
 * [voiceagent-transport](./voiceagent-transport/src) — shared Ktor WebSocket/HTTP client used by
   WebSocket-based providers.
 * [voiceagent-provider-grok](./voiceagent-provider-grok/src) — xAI Grok Voice Agent API
@@ -57,8 +57,9 @@ See [docs/PRD.md](docs/PRD.md) for the roadmap and
 
 * [androidApp](./androidApp) — Compose Android app with the Phase 1 voice demo (push-to-talk +
   live transcript).
-* [desktopApp](./desktopApp) / [iosApp](./iosApp) / [webApp](./webApp) — per-platform sample
-  shells; they gain voice support as their phase lands.
+* [iosApp](./iosApp) — SwiftUI shell hosting the same shared Compose voice demo (Phase 2).
+* [desktopApp](./desktopApp) / [webApp](./webApp) — per-platform sample shells; they gain voice
+  support as their phase lands.
 * [sharedLogic](./sharedLogic/src) / [sharedUI](./sharedUI/src) — code shared by the sample apps,
   including the `VoiceAgentScreen` Compose UI.
 
@@ -73,6 +74,14 @@ See [docs/PRD.md](docs/PRD.md) for the roadmap and
    ```
 3. **Install and talk** — `./gradlew :androidApp:installDebug`, grant the microphone permission,
    tap Connect, hold the button and talk.
+
+## Run the iOS demo end-to-end
+
+1. Deploy your proxy as above.
+2. Copy `iosApp/iosApp/BuddyVoiceConfig.example.plist` to `iosApp/iosApp/BuddyVoiceConfig.plist`
+   (gitignored, never commit it) and fill in your proxy URL and shared secret.
+3. Open [iosApp/iosApp.xcodeproj](./iosApp) in Xcode and run on a simulator or device —
+   the build invokes Gradle to compile the shared Kotlin framework automatically.
 
 ## Security model
 
@@ -93,7 +102,6 @@ See [docs/PRD.md](docs/PRD.md) for the roadmap and
 ```
 
 Web sample (template demo until Phase 5): `npm run build:shared && npm install && npm run start`.
-iOS sample: open [/iosApp](./iosApp) in Xcode.
 
 ## License
 
