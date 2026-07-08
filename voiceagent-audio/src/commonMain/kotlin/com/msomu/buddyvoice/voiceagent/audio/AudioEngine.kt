@@ -12,8 +12,8 @@ const val CHUNK_BYTES: Int = 1_280
  * Microphone capture and speaker playback, normalized to 16 kHz PCM16
  * little-endian mono so provider modules never touch platform audio formats.
  *
- * Platform availability: Android (Phase 1), iOS (Phase 2). Desktop and Web
- * actuals arrive in later phases and currently throw [UnsupportedOperationException].
+ * Platform availability: Android (Phase 1), iOS (Phase 2), Desktop/JVM (Phase 4).
+ * The Web actual arrives in a later phase and currently throws [UnsupportedOperationException].
  *
  * The app owns runtime permissions: on Android, request `RECORD_AUDIO` before
  * collecting [startCapture] (the library manifest only declares the permission);

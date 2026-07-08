@@ -8,6 +8,9 @@ plugins {
 
 dependencies {
     implementation(projects.sharedUI)
+    implementation(projects.voiceagentCore)
+    implementation(projects.voiceagentAudio)
+    implementation(projects.voiceagentProviderGrok)
 
     implementation(compose.desktop.currentOs)
     implementation(libs.kotlinx.coroutinesSwing)
