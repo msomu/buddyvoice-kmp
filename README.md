@@ -1,7 +1,7 @@
 # BuddyVoice KMP
 
 A Kotlin Multiplatform library that connects your app to **any realtime voice AI
-provider** (Grok today; OpenAI Realtime and ElevenLabs planned) through one common
+provider** (Grok and OpenAI Realtime today; ElevenLabs planned) through one common
 interface. Swapping providers is a config change, not a rewrite — and **no provider
 API key ever ships in client code**.
 
@@ -22,11 +22,11 @@ session.events.collect { event ->
 }
 ```
 
-## Support matrix (Phase 2)
+## Support matrix (Phase 3)
 
 | | Grok | OpenAI Realtime | ElevenLabs |
 |---|---|---|---|
-| Android | ✅ | Phase 3 | Phase 5 |
+| Android | ✅ | ✅ | Phase 5 |
 | iOS | ✅ | Phase 3 | Phase 5 |
 | Desktop (JVM) | Phase 4 | Phase 4 | Phase 5 |
 | Web | Phase 5 | Phase 5 | Phase 5 |
@@ -47,6 +47,8 @@ See [docs/PRD.md](docs/PRD.md) for the roadmap and
   WebSocket-based providers.
 * [voiceagent-provider-grok](./voiceagent-provider-grok/src) — xAI Grok Voice Agent API
   implementation. The only module that knows Grok's wire format.
+* [voiceagent-provider-openai](./voiceagent-provider-openai/src) — OpenAI Realtime API
+  implementation. Resamples 16 kHz boundary audio to/from OpenAI's 24 kHz wire format internally.
 
 **Backend:**
 

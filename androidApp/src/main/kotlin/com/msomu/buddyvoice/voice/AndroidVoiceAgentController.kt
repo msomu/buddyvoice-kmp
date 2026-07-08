@@ -1,6 +1,7 @@
 package com.msomu.buddyvoice.voice
 
 import com.msomu.buddyvoice.provider.grok.GrokVoiceAgentProvider
+import com.msomu.buddyvoice.provider.openai.OpenAIRealtimeProvider
 import com.msomu.buddyvoice.voiceagent.audio.AudioEngine
 import com.msomu.buddyvoice.voiceagent.core.AgentEvent
 import com.msomu.buddyvoice.voiceagent.core.VoiceAgentConfig
@@ -23,15 +24,34 @@ import kotlinx.coroutines.launch
 class AndroidVoiceAgentController(
     private val config: VoiceAgentConfig,
     private val scope: CoroutineScope,
-    private val provider: VoiceAgentProvider = GrokVoiceAgentProvider(),
+    private val providers: List<VoiceAgentProvider> = listOf(
+        GrokVoiceAgentProvider(),
+        OpenAIRealtimeProvider(),
+    ),
 ) : VoiceAgentController {
 
+    init {
+        require(providers.isNotEmpty()) { "at least one provider is required" }
+    }
+
     private val audioEngine = AudioEngine()
-    private val _state = MutableStateFlow(VoiceAgentUiState())
+    private val _state = MutableStateFlow(VoiceAgentUiState(selectedProviderId = providers.first().id))
     override val state: StateFlow<VoiceAgentUiState> = _state.asStateFlow()
 
     private var session: VoiceAgentSession? = null
     private var captureJob: Job? = null
+
+    override val availableProviders: List<String> = providers.map { it.id }
+
+    override fun selectProvider(id: String) {
+        if (_state.value.connection != ConnectionState.Disconnected &&
+            _state.value.connection != ConnectionState.Error
+        ) {
+            return // switching mid-session is not supported; disconnect first
+        }
+        if (providers.none { it.id == id }) return
+        _state.update { it.copy(selectedProviderId = id) }
+    }
 
     override fun connect() {
         if (_state.value.connection == ConnectionState.Connecting ||
@@ -40,6 +60,8 @@ class AndroidVoiceAgentController(
             return
         }
         _state.update { it.copy(connection = ConnectionState.Connecting, errorMessage = null) }
+        val provider = providers.firstOrNull { it.id == _state.value.selectedProviderId }
+            ?: providers.first()
         scope.launch {
             try {
                 val opened = provider.connect(config)

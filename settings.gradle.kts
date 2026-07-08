@@ -40,3 +40,5 @@ include(":voiceagent-core")
 include(":voiceagent-audio")
 include(":voiceagent-transport")
 include(":voiceagent-provider-grok")
+include(":voiceagent-provider-openai")
+

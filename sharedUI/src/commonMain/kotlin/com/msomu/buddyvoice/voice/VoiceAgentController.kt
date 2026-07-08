@@ -13,6 +13,12 @@ import kotlinx.coroutines.flow.StateFlow
 interface VoiceAgentController {
     val state: StateFlow<VoiceAgentUiState>
 
+    /** Provider ids the app can connect with; single-provider apps may leave this empty. */
+    val availableProviders: List<String> get() = emptyList()
+
+    /** Chooses the provider used by the next [connect]; a no-op while a session is active. */
+    fun selectProvider(id: String) {}
+
     /** Connects to the agent via the configured proxy. */
     fun connect()
 
@@ -44,4 +50,6 @@ data class VoiceAgentUiState(
     val agentIsTalking: Boolean = false,
     val transcript: List<TranscriptLine> = emptyList(),
     val errorMessage: String? = null,
+    /** Id of the provider the next connect() will use; null when the app has a fixed provider. */
+    val selectedProviderId: String? = null,
 )
