@@ -2,6 +2,7 @@
 #
 # Secrets are NEVER set here. Configure them per environment with:
 #   npx wrangler secret put XAI_API_KEY
+#   npx wrangler secret put OPENAI_API_KEY   # optional: only needed for /session/openai
 #   npx wrangler secret put BUDDYVOICE_PROXY_KEY
 # (add `--env dev` for the dev worker)
 

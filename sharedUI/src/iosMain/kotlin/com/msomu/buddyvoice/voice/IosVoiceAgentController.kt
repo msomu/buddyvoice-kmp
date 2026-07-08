@@ -1,7 +1,6 @@
 package com.msomu.buddyvoice.voice
 
 import com.msomu.buddyvoice.provider.grok.GrokVoiceAgentProvider
-import com.msomu.buddyvoice.provider.openai.OpenAIRealtimeProvider
 import com.msomu.buddyvoice.voiceagent.audio.AudioEngine
 import com.msomu.buddyvoice.voiceagent.core.AgentEvent
 import com.msomu.buddyvoice.voiceagent.core.VoiceAgentConfig
@@ -17,41 +16,23 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /**
- * Android [VoiceAgentController]: wires the shared UI to [AudioEngine] and a
- * [VoiceAgentProvider]. This class is the only place where audio, provider and
- * UI meet — the library modules stay decoupled from each other.
+ * iOS [VoiceAgentController]: wires the shared UI to [AudioEngine] and a
+ * [VoiceAgentProvider], mirroring `AndroidVoiceAgentController`. It lives in
+ * sharedUI's iosMain (not the Swift app) because the app layer on iOS cannot
+ * host Kotlin the way androidApp does.
  */
-class AndroidVoiceAgentController(
+class IosVoiceAgentController(
     private val config: VoiceAgentConfig,
     private val scope: CoroutineScope,
-    private val providers: List<VoiceAgentProvider> = listOf(
-        GrokVoiceAgentProvider(),
-        OpenAIRealtimeProvider(),
-    ),
+    private val provider: VoiceAgentProvider = GrokVoiceAgentProvider(),
 ) : VoiceAgentController {
 
-    init {
-        require(providers.isNotEmpty()) { "at least one provider is required" }
-    }
-
     private val audioEngine = AudioEngine()
-    private val _state = MutableStateFlow(VoiceAgentUiState(selectedProviderId = providers.first().id))
+    private val _state = MutableStateFlow(VoiceAgentUiState())
     override val state: StateFlow<VoiceAgentUiState> = _state.asStateFlow()
 
     private var session: VoiceAgentSession? = null
     private var captureJob: Job? = null
-
-    override val availableProviders: List<String> = providers.map { it.id }
-
-    override fun selectProvider(id: String) {
-        if (_state.value.connection != ConnectionState.Disconnected &&
-            _state.value.connection != ConnectionState.Error
-        ) {
-            return // switching mid-session is not supported; disconnect first
-        }
-        if (providers.none { it.id == id }) return
-        _state.update { it.copy(selectedProviderId = id) }
-    }
 
     override fun connect() {
         if (_state.value.connection == ConnectionState.Connecting ||
@@ -60,8 +41,6 @@ class AndroidVoiceAgentController(
             return
         }
         _state.update { it.copy(connection = ConnectionState.Connecting, errorMessage = null) }
-        val provider = providers.firstOrNull { it.id == _state.value.selectedProviderId }
-            ?: providers.first()
         scope.launch {
             try {
                 val opened = provider.connect(config)
@@ -75,7 +54,7 @@ class AndroidVoiceAgentController(
                 onDisconnected()
             } catch (t: Throwable) {
                 if (t is CancellationException) throw t
-                android.util.Log.e("BuddyVoice", "connect/session failed", t)
+                println("BuddyVoice: connect/session failed: $t")
                 session = null
                 _state.update {
                     it.copy(
@@ -89,10 +68,7 @@ class AndroidVoiceAgentController(
 
     override fun startTalking() {
         val active = session ?: return
-        // isActive (not null) check: the capture coroutine can die on its own —
-        // sendAudio failing after a session drop, or the session ending — and the
-        // completed Job would otherwise block the mic on the next connect().
-        if (captureJob?.isActive == true) return
+        if (captureJob != null) return
         _state.update { it.copy(userIsTalking = true) }
         captureJob = scope.launch {
             try {

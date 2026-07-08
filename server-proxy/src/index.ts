@@ -10,11 +10,15 @@
 export interface Env {
   /** xAI API key (Worker Secret). */
   XAI_API_KEY: string;
+  /** OpenAI API key (Worker Secret) — only needed if /session/openai is used. */
+  OPENAI_API_KEY?: string;
   /** Shared secret clients must send as X-BuddyVoice-Proxy-Key (Worker Secret). */
   BUDDYVOICE_PROXY_KEY: string;
 }
 
 const XAI_CLIENT_SECRETS_URL = "https://api.x.ai/v1/realtime/client_secrets";
+const OPENAI_CLIENT_SECRETS_URL = "https://api.openai.com/v1/realtime/client_secrets";
+const OPENAI_DEFAULT_MODEL = "gpt-realtime";
 const TOKEN_TTL_SECONDS = 300;
 
 const CORS_HEADERS: Record<string, string> = {
@@ -40,14 +44,14 @@ async function keyMatches(provided: string, expected: string): Promise<boolean> 
   return crypto.subtle.timingSafeEqual(a, b);
 }
 
-async function mintGrokToken(env: Env): Promise<Response> {
-  const upstream = await fetch(XAI_CLIENT_SECRETS_URL, {
+async function mintToken(url: string, apiKey: string, body: unknown): Promise<Response> {
+  const upstream = await fetch(url, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${env.XAI_API_KEY}`,
+      Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ expires_after: { seconds: TOKEN_TTL_SECONDS } }),
+    body: JSON.stringify(body),
   });
 
   if (!upstream.ok) {
@@ -62,6 +66,23 @@ async function mintGrokToken(env: Env): Promise<Response> {
   });
 }
 
+function mintGrokToken(env: Env): Promise<Response> {
+  return mintToken(XAI_CLIENT_SECRETS_URL, env.XAI_API_KEY, {
+    expires_after: { seconds: TOKEN_TTL_SECONDS },
+  });
+}
+
+function mintOpenAIToken(env: Env): Promise<Response> {
+  if (!env.OPENAI_API_KEY) {
+    // Secret not set on this worker; see server-proxy/README.md.
+    return Promise.resolve(json({ error: "openai is not configured on this proxy" }, 501));
+  }
+  return mintToken(OPENAI_CLIENT_SECRETS_URL, env.OPENAI_API_KEY, {
+    expires_after: { anchor: "created_at", seconds: TOKEN_TTL_SECONDS },
+    session: { type: "realtime", model: OPENAI_DEFAULT_MODEL },
+  });
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     if (request.method === "OPTIONS") {
@@ -69,7 +90,11 @@ export default {
     }
 
     const url = new URL(request.url);
-    if (request.method !== "POST" || url.pathname !== "/session/grok") {
+    const mint =
+      url.pathname === "/session/grok" ? mintGrokToken
+      : url.pathname === "/session/openai" ? mintOpenAIToken
+      : null;
+    if (request.method !== "POST" || mint === null) {
       return json({ error: "not found" }, 404);
     }
 
@@ -78,6 +103,6 @@ export default {
       return json({ error: "unauthorized" }, 401);
     }
 
-    return mintGrokToken(env);
+    return mint(env);
   },
 } satisfies ExportedHandler<Env>;
