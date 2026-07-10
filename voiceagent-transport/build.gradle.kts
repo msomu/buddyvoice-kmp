@@ -6,11 +6,15 @@ plugins {
     alias(libs.plugins.mavenPublish)
 }
 
-group = "io.github.msomu"
-version = "0.1.0-SNAPSHOT"
-
 mavenPublishing {
-    coordinates("io.github.msomu", "buddyvoice-transport", version.toString())
+    // group + version come from GROUP / VERSION_NAME in gradle.properties.
+    coordinates(artifactId = "buddyvoice-transport")
+
+    // Signing only happens when a key is provided (the release workflow); local
+    // builds and publishToMavenLocal skip it.
+    if (providers.gradleProperty("signingInMemoryKey").isPresent) {
+        signAllPublications()
+    }
     pom {
         name.set("BuddyVoice Transport")
         description.set("Shared Ktor WebSocket/HTTP transport for WebSocket-based voice agent providers")

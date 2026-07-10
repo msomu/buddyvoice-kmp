@@ -6,11 +6,15 @@ plugins {
     alias(libs.plugins.mavenPublish)
 }
 
-group = "io.github.msomu"
-version = "0.1.0-SNAPSHOT"
-
 mavenPublishing {
-    coordinates("io.github.msomu", "buddyvoice-core", version.toString())
+    // group + version come from GROUP / VERSION_NAME in gradle.properties.
+    coordinates(artifactId = "buddyvoice-core")
+
+    // Signing only happens when a key is provided (the release workflow); local
+    // builds and publishToMavenLocal skip it.
+    if (providers.gradleProperty("signingInMemoryKey").isPresent) {
+        signAllPublications()
+    }
     pom {
         name.set("BuddyVoice Core")
         description.set("Provider-agnostic realtime voice agent interfaces for Kotlin Multiplatform")
