@@ -21,6 +21,8 @@ kotlin {
             implementation(projects.voiceagentCore)
             implementation(projects.voiceagentAudio)
             implementation(projects.voiceagentProviderGrok)
+            implementation(projects.voiceagentProviderOpenai)
+            implementation(projects.voiceagentProviderElevenlabs)
 
             implementation(libs.compose.runtime)
             implementation(libs.compose.ui)
