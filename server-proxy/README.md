@@ -20,6 +20,8 @@ npx wrangler login
 # 2. Set the secrets (you'll be prompted for the values — they are never stored in the repo)
 npx wrangler secret put XAI_API_KEY            # your xAI key
 npx wrangler secret put OPENAI_API_KEY         # optional: your OpenAI key, only for /session/openai
+npx wrangler secret put ELEVENLABS_API_KEY     # optional: your ElevenLabs key, only for /session/elevenlabs
+npx wrangler secret put ELEVENLABS_AGENT_ID    # optional: the default ElevenLabs agent to connect to
 npx wrangler secret put BUDDYVOICE_PROXY_KEY   # invent a long random string, e.g. `openssl rand -hex 32`
 
 # 3. Ship it
@@ -57,9 +59,18 @@ You should get JSON containing a short-lived token. Without the header you get a
 |---|---|---|---|
 | `POST /session/grok` | xAI Grok | `POST https://api.x.ai/v1/realtime/client_secrets` | `XAI_API_KEY` |
 | `POST /session/openai` | OpenAI Realtime | `POST https://api.openai.com/v1/realtime/client_secrets` | `OPENAI_API_KEY` |
+| `POST /session/elevenlabs` | ElevenLabs Agents | `GET https://api.elevenlabs.io/v1/convai/conversation/get-signed-url` | `ELEVENLABS_API_KEY`, `ELEVENLABS_AGENT_ID` |
 
-`/session/openai` returns `501` if `OPENAI_API_KEY` is not set on the worker —
-the secret is only required if you actually use the OpenAI provider.
+`/session/openai` and `/session/elevenlabs` return `501` if their secret is not
+set on the worker — each provider's secret is only required if you actually use it.
+
+ElevenLabs notes: create an agent at elevenlabs.io first, set both audio formats
+to **PCM 16000 Hz** in its Voice settings, and enable prompt/voice overrides in
+its Security settings if you want the app's system prompt to apply. Set the
+agent id with `npx wrangler secret put ELEVENLABS_AGENT_ID` (clients may also
+send `{"agentId": "..."}` in the request body to pick a different agent).
+Instead of a bearer token, the response is `{"signed_url": ...}` — a WebSocket
+URL with an embedded short-lived credential that the client connects to directly.
 
 ## Local development
 

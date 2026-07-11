@@ -1,7 +1,7 @@
 # BuddyVoice KMP
 
 A Kotlin Multiplatform library that connects your app to **any realtime voice AI
-provider** (Grok and OpenAI Realtime today; ElevenLabs planned) through one common
+provider** (Grok, OpenAI Realtime, and ElevenLabs Agents) through one common
 interface. Swapping providers is a config change, not a rewrite — and **no provider
 API key ever ships in client code**.
 
@@ -26,13 +26,19 @@ session.events.collect { event ->
 
 | | Grok | OpenAI Realtime | ElevenLabs |
 |---|---|---|---|
-| Android | ✅ | ✅ | later |
-| iOS | ✅ | Phase 3 | later |
-| Desktop (JVM) | ✅ | Phase 4 | later |
-| Web | ✅ | Phase 5 | later |
+| Android | ✅ | ✅ | 🔌 |
+| iOS | ✅ | 🔌 | 🔌 |
+| Desktop (JVM) | ✅ | 🔌 | 🔌 |
+| Web | ✅ | 🔌 | 🔌 |
 
-ElevenLabs speaks WebRTC, not WebSocket, so its provider ships separately with
-its own transport (see the PRD).
+✅ verified end-to-end on a real device · 🔌 fully wired (provider + sample
+picker), awaiting a real-device conversation to earn its check mark.
+
+The PRD assumed ElevenLabs would need WebRTC; on inspection ElevenLabs Agents
+has a first-class WebSocket API with server-minted signed URLs, so its provider
+reuses `voiceagent-transport` like the others. Your ElevenLabs agent must be
+configured for **PCM 16000 Hz** input and output (see
+[server-proxy/README.md](./server-proxy/README.md)).
 
 See [docs/PRD.md](docs/PRD.md) for the roadmap and
 [docs/architecture.md](docs/architecture.md) for how the pieces fit.
@@ -52,6 +58,9 @@ See [docs/PRD.md](docs/PRD.md) for the roadmap and
   implementation. The only module that knows Grok's wire format.
 * [voiceagent-provider-openai](./voiceagent-provider-openai/src) — OpenAI Realtime API
   implementation. Resamples 16 kHz boundary audio to/from OpenAI's 24 kHz wire format internally.
+* [voiceagent-provider-elevenlabs](./voiceagent-provider-elevenlabs/src) — ElevenLabs Agents
+  implementation over its signed-URL WebSocket API. Agents are configured in the ElevenLabs
+  dashboard; the library's prompt/voice apply only if the agent allows overrides.
 
 **Backend:**
 

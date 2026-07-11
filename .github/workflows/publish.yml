@@ -1,0 +1,43 @@
+name: Publish to Maven Central
+
+# Publishes all buddyvoice-* library modules when a version tag is pushed.
+# One-time credential setup is documented in RELEASING.md. Secrets are read
+# by Gradle via ORG_GRADLE_PROJECT_* environment mapping — never echoed.
+
+on:
+  push:
+    tags: ["v*"]
+
+jobs:
+  publish:
+    # macOS is required: the KMP publications include iOS targets, which only
+    # compile on a Mac host.
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify tag matches VERSION_NAME
+        run: |
+          version="$(grep '^VERSION_NAME=' gradle.properties | cut -d= -f2)"
+          tag="${GITHUB_REF_NAME#v}"
+          if [ "$version" != "$tag" ]; then
+            echo "Tag v$tag does not match VERSION_NAME=$version in gradle.properties" >&2
+            exit 1
+          fi
+          case "$version" in
+            *-SNAPSHOT) echo "Refusing to release a -SNAPSHOT version" >&2; exit 1 ;;
+          esac
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Publish
+        run: ./gradlew publishToMavenCentral --no-configuration-cache
+        env:
+          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_IN_MEMORY_KEY }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_IN_MEMORY_KEY_PASSWORD }}

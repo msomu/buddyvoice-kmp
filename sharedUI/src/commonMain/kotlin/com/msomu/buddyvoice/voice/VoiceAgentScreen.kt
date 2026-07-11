@@ -50,25 +50,44 @@ fun VoiceAgentScreen(controller: VoiceAgentController, modifier: Modifier = Modi
         modifier = modifier.fillMaxSize().padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(
-            text = "BuddyVoice",
-            style = MaterialTheme.typography.titleMedium,
-        )
-        val canPickProvider = controller.availableProviders.size > 1 &&
-            (state.connection == ConnectionState.Disconnected || state.connection == ConnectionState.Error)
-        if (canPickProvider) {
-            ProviderPicker(
-                providers = controller.availableProviders,
-                selectedId = state.selectedProviderId,
-                onSelect = controller::selectProvider,
-                modifier = Modifier.padding(top = 4.dp),
-            )
-        } else {
-            Text(
-                text = state.selectedProviderId?.let { "$it voice agent" } ?: "Voice agent",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+        Box(modifier = Modifier.fillMaxWidth()) {
+            Column(
+                modifier = Modifier.align(Alignment.Center),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(
+                    text = "BuddyVoice",
+                    style = MaterialTheme.typography.titleMedium,
+                )
+                val canPickProvider = controller.availableProviders.size > 1 &&
+                    (state.connection == ConnectionState.Disconnected || state.connection == ConnectionState.Error)
+                if (canPickProvider) {
+                    ProviderPicker(
+                        providers = controller.availableProviders,
+                        selectedId = state.selectedProviderId,
+                        onSelect = controller::selectProvider,
+                        modifier = Modifier.padding(top = 4.dp),
+                    )
+                } else {
+                    Text(
+                        text = state.selectedProviderId?.let { "$it voice agent" } ?: "Voice agent",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            if (state.transcript.isNotEmpty()) {
+                Text(
+                    text = "New chat",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .clip(CircleShape)
+                        .clickable(onClick = controller::clearConversation)
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                )
+            }
         }
 
         if (state.transcript.isEmpty()) {

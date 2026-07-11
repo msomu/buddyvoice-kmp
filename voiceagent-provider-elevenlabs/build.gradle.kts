@@ -9,7 +9,7 @@ plugins {
 
 mavenPublishing {
     // group + version come from GROUP / VERSION_NAME in gradle.properties.
-    coordinates(artifactId = "buddyvoice-provider-openai")
+    coordinates(artifactId = "buddyvoice-provider-elevenlabs")
 
     // Signing only happens when a key is provided (the release workflow); local
     // builds and publishToMavenLocal skip it.
@@ -17,8 +17,8 @@ mavenPublishing {
         signAllPublications()
     }
     pom {
-        name.set("BuddyVoice OpenAI Realtime Provider")
-        description.set("OpenAI Realtime API provider for BuddyVoice")
+        name.set("BuddyVoice ElevenLabs Provider")
+        description.set("ElevenLabs Agents WebSocket provider for BuddyVoice")
         url.set("https://github.com/msomu/buddyvoice-kmp")
         licenses {
             license {
@@ -49,7 +49,7 @@ kotlin {
     }
 
     androidLibrary {
-        namespace = "com.msomu.buddyvoice.provider.openai"
+        namespace = "com.msomu.buddyvoice.provider.elevenlabs"
         compileSdk = libs.versions.android.compileSdk.get().toInt()
         minSdk = libs.versions.android.minSdk.get().toInt()
 
@@ -61,7 +61,10 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             api(projects.voiceagentCore)
-            implementation(projects.voiceagentTransport)
+            // `api`, not `implementation`: GrokVoiceAgentProvider's public constructor
+            // takes a RealtimeClient, which Kotlin/JS consumers must be able to
+            // resolve at compile time (see docs/adr/0001).
+            api(projects.voiceagentTransport)
             implementation(libs.kotlinx.serialization.json)
         }
         commonTest.dependencies {

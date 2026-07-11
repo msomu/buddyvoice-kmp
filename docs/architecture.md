@@ -107,11 +107,45 @@ provider-internal differences, both invisible outside the module:
 
 `interrupt()` sends `response.cancel` plus a synthetic local `TurnEnded`.
 
+## ElevenLabs event mapping
+
+ElevenLabs Agents turned out to have a first-class WebSocket API (the PRD's
+WebRTC assumption did not survive contact with the docs), so the provider
+reuses `voiceagent-transport`. Instead of a bearer token, the proxy returns a
+**signed WebSocket URL** (`GET get-signed-url`, ~15 min validity) and the
+client connects to it directly — no headers needed, so the same code path
+works in browsers. The agent itself is configured in the ElevenLabs dashboard
+and must use PCM 16000 Hz in/out; `VoiceAgentConfig` prompt/voice apply only
+if the agent's security settings allow overrides.
+
+Protocol quirks vs Grok/OpenAI, all captured in unit tests: transcripts arrive
+as complete utterances (not deltas); there is no explicit turn-start event
+(the mapper synthesizes `TurnStarted` on the first agent audio/text of a turn);
+`agent_response_correction` rewrites the agent line after a barge-in; server
+`ping` events must be answered with `pong`.
+
+| ElevenLabs server event | AgentEvent |
+|---|---|
+| `conversation_initiation_metadata` | nothing, or `Error` if the agent's audio format ≠ pcm_16000 |
+| `audio` | synthesized `TurnStarted` (first of turn) + `AudioChunk`; `is_final` also ends the turn |
+| `agent_response` | synthesized `TurnStarted` (if needed) + final `PartialTranscript` |
+| `agent_response_correction` | final `PartialTranscript` (replaces the truncated line) |
+| `agent_response_complete` / `interruption` | `TurnEnded` (exactly once per turn) |
+| `user_transcript` | final user `PartialTranscript` |
+| `ping` | answered with `pong` (not surfaced) |
+| `client_error` / `error` | `Error` |
+| anything else | ignored (lenient by design) |
+
+`interrupt()` emits a synthetic local `TurnEnded` only — the protocol has no
+client-initiated cancel; real barge-in happens via the server's own VAD.
+
 ## Support matrix
+
+✅ verified end-to-end on a real device · 🔌 wired, verification pending
 
 | | Grok | OpenAI Realtime | ElevenLabs |
 |---|---|---|---|
-| Android | ✅ Phase 1 | ✅ Phase 3 | Phase 5 |
-| iOS | ✅ Phase 2 | Phase 3 | Phase 5 |
-| Desktop (JVM) | ✅ Phase 4 | Phase 4 | Phase 5 |
-| Web | ✅ Phase 5 | Phase 5 | Phase 5 |
+| Android | ✅ Phase 1 | ✅ Phase 3 | 🔌 |
+| iOS | ✅ Phase 2 | 🔌 | 🔌 |
+| Desktop (JVM) | ✅ Phase 4 | 🔌 | 🔌 |
+| Web | ✅ Phase 5 | 🔌 | 🔌 |

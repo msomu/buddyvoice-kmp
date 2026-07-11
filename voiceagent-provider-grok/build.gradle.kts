@@ -7,11 +7,15 @@ plugins {
     alias(libs.plugins.mavenPublish)
 }
 
-group = "io.github.msomu"
-version = "0.1.0-SNAPSHOT"
-
 mavenPublishing {
-    coordinates("io.github.msomu", "buddyvoice-provider-grok", version.toString())
+    // group + version come from GROUP / VERSION_NAME in gradle.properties.
+    coordinates(artifactId = "buddyvoice-provider-grok")
+
+    // Signing only happens when a key is provided (the release workflow); local
+    // builds and publishToMavenLocal skip it.
+    if (providers.gradleProperty("signingInMemoryKey").isPresent) {
+        signAllPublications()
+    }
     pom {
         name.set("BuddyVoice Grok Provider")
         description.set("xAI Grok Voice Agent API provider for BuddyVoice")

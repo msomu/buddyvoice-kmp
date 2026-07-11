@@ -1,5 +1,6 @@
 package com.msomu.buddyvoice.voice
 
+import com.msomu.buddyvoice.provider.elevenlabs.ElevenLabsVoiceAgentProvider
 import com.msomu.buddyvoice.provider.grok.GrokVoiceAgentProvider
 import com.msomu.buddyvoice.provider.openai.OpenAIRealtimeProvider
 import com.msomu.buddyvoice.voiceagent.audio.AudioEngine
@@ -27,6 +28,7 @@ class AndroidVoiceAgentController(
     private val providers: List<VoiceAgentProvider> = listOf(
         GrokVoiceAgentProvider(),
         OpenAIRealtimeProvider(),
+        ElevenLabsVoiceAgentProvider(),
     ),
 ) : VoiceAgentController {
 
@@ -151,6 +153,11 @@ class AndroidVoiceAgentController(
                 it.copy(errorMessage = event.cause.message ?: event.cause.toString())
             }
         }
+    }
+
+    override fun clearConversation() {
+        disconnect()
+        _state.update { it.copy(transcript = emptyList(), errorMessage = null) }
     }
 
     private fun onDisconnected() {

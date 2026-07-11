@@ -18,6 +18,7 @@ dependencies {
     implementation(projects.voiceagentAudio)
     implementation(projects.voiceagentProviderGrok)
     implementation(projects.voiceagentProviderOpenai)
+    implementation(projects.voiceagentProviderElevenlabs)
 
     implementation(libs.androidx.activity.compose)
 

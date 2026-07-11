@@ -37,11 +37,37 @@ jobs:
           :voiceagent-transport:build
           :voiceagent-audio:build
           :voiceagent-provider-grok:build
+          :voiceagent-provider-openai:build
+          :voiceagent-provider-elevenlabs:build
           :sharedLogic:build
           :sharedUI:build
           :androidApp:assembleDebug
           :desktopApp:build
+          :webApp:compileKotlinJs
           -x jsBrowserTest
+
+  # Compile-only guard for the iOS targets (no simulator, no signing): catches
+  # iosMain breakage and klib linkage issues that the Linux job cannot see.
+  ios-compile:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Compile iOS klibs and link the sample framework
+        run: >
+          ./gradlew
+          :voiceagent-core:compileKotlinIosSimulatorArm64
+          :voiceagent-transport:compileKotlinIosSimulatorArm64
+          :voiceagent-audio:compileKotlinIosSimulatorArm64
+          :voiceagent-provider-grok:compileKotlinIosSimulatorArm64
+          :voiceagent-provider-openai:compileKotlinIosSimulatorArm64
+          :voiceagent-provider-elevenlabs:compileKotlinIosSimulatorArm64
+          :sharedLogic:compileKotlinIosSimulatorArm64
+          :sharedUI:linkDebugFrameworkIosSimulatorArm64
 
   proxy:
     runs-on: ubuntu-latest

@@ -103,7 +103,7 @@ All actuals expose the same shape: `fun startCapture(): Flow<ByteArray>` and `su
 ### 3.4 Transport layer
 
 - `voiceagent-transport` wraps Ktor's WebSocket/HTTP client, used by WebSocket-based providers (Grok, OpenAI Realtime).
-- ElevenLabs uses WebRTC, not WebSocket. Its future provider module owns its own transport and does not use `voiceagent-transport`.
+- ElevenLabs was assumed to need WebRTC; Phase 5 confirmed (as this PRD asked) that ElevenLabs Agents ships a first-class WebSocket API with signed URLs, so `voiceagent-provider-elevenlabs` reuses `voiceagent-transport` after all.
 
 ### 3.5 Server proxy
 
@@ -138,7 +138,7 @@ One real end-to-end voice conversation: Android sample app → own proxy → Gro
 `javax.sound.sampled` actual; desktopApp gets the voice UI.
 
 ### Phase 5: Web audio actual + ElevenLabs provider
-Web Audio interop + `voiceagent-provider-elevenlabs` (own WebRTC transport) + WebRTC signaling in the proxy. May ship as experimental if web audio tooling drags.
+Web Audio interop + `voiceagent-provider-elevenlabs` + an ElevenLabs signed-URL route in the proxy. (The anticipated WebRTC transport proved unnecessary — ElevenLabs Agents speaks WebSocket; confirmed rather than assumed, per this PRD's own instruction.)
 
 ---
 
